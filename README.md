@@ -32,8 +32,8 @@ the camera in and opens a panel with the folder's notes. Built with Three.js
 It ships with demo data so the galaxy renders immediately.
 
 ```bash
-git clone https://github.com/<your-username>/knowledge-galaxy.git
-cd knowledge-galaxy
+git clone https://github.com/Aprillllllw/obsidian-galaxy-dashboard.git
+cd obsidian-galaxy-dashboard
 open index.html        # macOS — or just double-click the file
 ```
 
