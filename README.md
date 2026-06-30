@@ -6,7 +6,7 @@ the camera in and opens a panel with the folder's notes. Built with Three.js
 (WebGL + bloom + a custom atmosphere shader) in a single static HTML file —
 **no build step, no plugin, no server required. Just open it.**
 
-![Knowledge Galaxy](screenshots/galaxy.png)
+![Knowledge Galaxy](screenshots/galaxy.jpg)
 
 > _Per aspera ad astra_ — through hardship to the stars.
 
