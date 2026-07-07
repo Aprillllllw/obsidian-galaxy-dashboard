@@ -1,0 +1,9 @@
+{
+  "id": "knowledge-galaxy-dashboard",
+  "name": "Knowledge Galaxy Dashboard",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Your vault as a 3D galaxy — every top-level folder becomes a planet, with live HUD cards for vault health, statistics and tasks.",
+  "author": "Aprillllllw",
+  "isDesktopOnly": true
+}

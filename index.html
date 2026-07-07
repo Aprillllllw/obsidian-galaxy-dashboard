@@ -72,22 +72,76 @@
   #clock .mode{margin-top:8px;font-size:10.5px;letter-spacing:.25em;color:var(--accent)}
   #clock .mode::before{content:"●";margin-right:6px;font-size:8px}
 
-  /* ---------- 卡片通用 ---------- */
+  /* ---------- 卡片通用（vessel 玻璃拟态标准） ---------- */
   .glass{background:var(--card);border:1px solid var(--card-border);border-radius:14px;
-    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     box-shadow:0 10px 40px rgba(0,0,0,.45)}
+  .glass h3{font-size:11px;font-weight:600;letter-spacing:.26em;color:var(--accent);
+    text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .glass h3::before{content:"";flex:none;width:4px;height:4px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 6px var(--accent)}
 
-  /* ---------- 左侧总览 ---------- */
-  #overview{position:fixed;top:96px;left:34px;width:248px;padding:18px 20px;z-index:4}
-  #overview h3,#recent h3{font-size:12px;letter-spacing:.28em;color:var(--accent);
-    font-weight:500;margin-bottom:14px}
-  .stat{display:flex;justify-content:space-between;align-items:center;padding:7px 0;
+  /* 进场 stagger：body.ready 后逐张浮现 */
+  .hud{opacity:0;transform:translateY(14px);
+    transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+  body.ready .hud{opacity:1;transform:none}
+  .col .hud:nth-child(1){transition-delay:.06s}
+  .col .hud:nth-child(2){transition-delay:.12s}
+  .col .hud:nth-child(3){transition-delay:.18s}
+  .col .hud:nth-child(4){transition-delay:.24s}
+  #quote.hud{transition-delay:.3s}
+
+  /* ---------- HUD 列布局 ---------- */
+  .col{position:fixed;top:96px;bottom:100px;width:250px;display:flex;flex-direction:column;
+    gap:10px;z-index:4;pointer-events:none;transition:opacity .4s;overflow:hidden}
+  #colL{left:34px}
+  #colR{right:34px;top:120px}
+  .col>.glass{position:relative;pointer-events:auto;flex:none;min-height:0}
+  /* 屏幕不够高时：最后一张卡（RECENT NOTES）自动压缩，内部裁切，不压住底部导航 */
+  #recent{flex:0 1 auto;overflow-y:auto}
+
+  #overview{padding:15px 18px}
+  .stat{display:flex;justify-content:space-between;align-items:center;padding:6px 0;
     font-size:13px;color:var(--ink);border-bottom:1px dashed rgba(125,211,252,.1)}
   .stat:last-child{border-bottom:none}
   .stat b{font-family:Orbitron,monospace;font-weight:500;color:#fff;font-size:15px}
   .stat .ico{margin-right:8px;opacity:.8}
 
-  #recent{position:fixed;bottom:30px;left:34px;width:300px;padding:16px 20px;z-index:4}
+  /* kv 行（health / vault stats 共用） */
+  .kv{display:flex;align-items:center;gap:8px;padding:3.5px 0;font-size:12.5px}
+  .kv .k{color:var(--dim);flex:none}
+  .kv .v{margin-left:auto;color:var(--ink);text-align:right;font-family:Orbitron,monospace;
+    font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kv .v.hl{color:var(--accent)}
+
+  /* 知识健康环 */
+  #healthP{padding:14px 18px}
+  #healthP .hwrap{display:flex;gap:12px;align-items:center}
+  #healthP svg{flex:none}
+  #healthP .hnum{font-size:19px;font-weight:500;fill:#7ef0c0;font-family:Orbitron,monospace}
+  #healthP .hlab{font-size:7.5px;letter-spacing:.12em;fill:var(--dim)}
+  #healthP .hlist{flex:1;min-width:0}
+
+  /* 仓库统计 + 迷你走势 */
+  #vaultP{padding:14px 18px}
+  #vaultP .spark{margin-top:8px;height:30px;width:100%;display:block}
+  #vaultP .spark polyline{fill:none;stroke:var(--accent);stroke-width:1.5;
+    filter:drop-shadow(0 0 3px rgba(125,211,252,.7))}
+  #vaultP .spark .fillp{fill:rgba(125,211,252,.12);stroke:none}
+
+  /* 今日任务 */
+  #tasksP{padding:14px 18px}
+  .task{display:flex;gap:9px;align-items:flex-start;padding:4.5px 0;font-size:12.5px;
+    cursor:pointer;line-height:1.35;color:var(--ink)}
+  .task .box{flex:none;width:13px;height:13px;margin-top:1px;border:1px solid rgba(125,211,252,.4);
+    border-radius:4px;position:relative;transition:.2s}
+  .task.done .box{background:var(--accent);border-color:var(--accent);
+    box-shadow:0 0 8px rgba(125,211,252,.5)}
+  .task.done .box::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:8px;
+    border:solid #04121e;border-width:0 1.5px 1.5px 0;transform:rotate(40deg)}
+  .task.done span{color:var(--dim);text-decoration:line-through}
+
+  #recent{padding:14px 18px}
   .note-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
     padding:7px 2px;font-size:12.5px;cursor:pointer;border-radius:6px;color:var(--ink)}
   .note-row:hover{background:rgba(125,211,252,.08);color:#fff}
@@ -204,9 +258,9 @@
   #backBtn:hover{background:rgba(125,211,252,.15);box-shadow:0 0 24px rgba(125,211,252,.25)}
   #backBtn.show{display:flex}
 
-  body.focused #overview,body.focused #recent,body.focused #hint,body.focused #quote{
-    opacity:0;pointer-events:none;transition:opacity .4s}
-  #overview,#recent,#quote{transition:opacity .4s}
+  body.focused .col,body.focused #hint,body.focused #quote{
+    opacity:0;pointer-events:none}
+  #quote{transition:opacity .4s,transform .6s cubic-bezier(.2,.8,.2,1)}
 </style>
 <script src="config.js"></script>
 <!-- Demo data ships with the repo; your generated data.js (gitignored) overrides it if present. -->
@@ -237,19 +291,50 @@
   <div class="mode">GALAXY VIEW</div>
 </div>
 
-<aside id="overview" class="glass">
-  <h3>GALAXY OVERVIEW</h3>
-  <div id="statRows"></div>
-</aside>
+<div class="col" id="colL">
+  <aside id="overview" class="glass hud">
+    <h3>GALAXY OVERVIEW</h3>
+    <div id="statRows"></div>
+  </aside>
 
-<aside id="recent" class="glass">
-  <h3>RECENT NOTES</h3>
-  <div id="recentRows"></div>
-</aside>
+  <aside id="healthP" class="glass hud">
+    <h3>KNOWLEDGE HEALTH</h3>
+    <div class="hwrap">
+      <svg width="66" height="66" viewBox="0 0 66 66">
+        <circle cx="33" cy="33" r="28" fill="none" stroke="rgba(125,211,252,.12)" stroke-width="4"/>
+        <circle id="hring" cx="33" cy="33" r="28" fill="none" stroke="#7ef0c0" stroke-width="4"
+          stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="175.9"
+          transform="rotate(-90 33 33)" style="transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);
+          filter:drop-shadow(0 0 4px rgba(126,240,192,.7))"/>
+        <text class="hnum" id="hscore" x="33" y="36" text-anchor="middle">—</text>
+        <text class="hlab" x="33" y="47" text-anchor="middle">HEALTH</text>
+      </svg>
+      <div class="hlist" id="healthList"></div>
+    </div>
+  </aside>
+
+  <aside id="vaultP" class="glass hud">
+    <h3>VAULT STATISTICS</h3>
+    <div id="vaultList"></div>
+    <svg class="spark" id="spark" viewBox="0 0 220 30" preserveAspectRatio="none"></svg>
+  </aside>
+
+  <aside id="recent" class="glass hud">
+    <h3>RECENT NOTES</h3>
+    <div id="recentRows"></div>
+  </aside>
+</div>
+
+<div class="col" id="colR">
+  <aside id="tasksP" class="glass hud">
+    <h3>TODAY'S TASKS</h3>
+    <div id="taskList"></div>
+  </aside>
+</div>
 
 <div id="hint">Drag to orbit · scroll to zoom · click a planet to enter · drag a planet to spin it</div>
 
-<aside id="quote" class="glass">
+<aside id="quote" class="glass hud">
   <span id="qText">Per aspera ad astra</span>
   <span class="by" id="qBy">through hardship to the stars</span>
 </aside>
@@ -578,6 +663,57 @@ document.getElementById('recentRows').onclick = e => {
   const row = e.target.closest('.note-row'); if(row) openNote(row.dataset.p);
 };
 
+/* ---- KNOWLEDGE HEALTH / VAULT STATISTICS / TODAY'S TASKS ----
+   新字段来自 scripts/update_dashboard.py（health/stats/streak/tasks）。
+   老版本 data.js 没有这些字段时优雅降级：显示 — ，不编数字。 */
+const fmt = v => (v === undefined || v === null) ? '—'
+  : (typeof v === 'number' ? v.toLocaleString() : v);
+{
+  const H = DATA.health, K = DATA.streak;
+  document.getElementById('healthList').innerHTML = `
+    <div class="kv"><span class="k">Notes</span><span class="v">${fmt(H?.notes ?? DATA.totalNotes)}</span></div>
+    <div class="kv"><span class="k">Connections</span><span class="v">${fmt(H?.links)}</span></div>
+    <div class="kv"><span class="k">Orphans</span><span class="v">${fmt(H?.orphans)}</span></div>
+    <div class="kv"><span class="k">Daily Streak</span><span class="v hl">${K?.days != null ? K.days + ' Days' : '—'}</span></div>`;
+  if(H?.score != null){
+    document.getElementById('hscore').textContent = H.score;
+    setTimeout(() => document.getElementById('hring').style.strokeDashoffset =
+      (175.9 * (1 - Math.min(100, Math.max(0, H.score)) / 100)).toFixed(1), 900);
+  }
+
+  const S = DATA.stats;
+  document.getElementById('vaultList').innerHTML = `
+    <div class="kv"><span class="k">Files</span><span class="v">${fmt(S?.files ?? DATA.totalNotes)}</span></div>
+    <div class="kv"><span class="k">Folders</span><span class="v">${fmt(S?.folders)}</span></div>
+    <div class="kv"><span class="k">Tags</span><span class="v">${fmt(S?.tags)}</span></div>
+    <div class="kv"><span class="k">Attachments</span><span class="v">${fmt(S?.attachments)}</span></div>
+    <div class="kv"><span class="k">Created (30d)</span><span class="v hl">${fmt(S?.created30d)}</span></div>`;
+  const spark = document.getElementById('spark');
+  if(S?.trend?.length > 1){
+    const tr = S.trend, max = Math.max(1, ...tr), W = 220, Hh = 30, P = 2;
+    const pts = tr.map((v, i) =>
+      `${(i / (tr.length - 1) * W).toFixed(1)},${(Hh - P - v / max * (Hh - 2 * P)).toFixed(1)}`).join(' ');
+    spark.innerHTML = `<polygon class="fillp" points="0,${Hh} ${pts} ${W},${Hh}"/><polyline points="${pts}"/>`;
+  } else spark.style.display = 'none';
+
+  const tasks = Array.isArray(DATA.tasks) ? DATA.tasks : [];
+  const taskList = document.getElementById('taskList');
+  const doneStore = JSON.parse(localStorage.getItem('galaxy-tasks') || '{}');
+  if(!tasks.length) taskList.innerHTML = '<div class="empty">No open tasks found</div>';
+  tasks.forEach(t => {
+    const el = document.createElement('div');
+    const isDone = doneStore[t.text] !== undefined ? doneStore[t.text] : !!t.done;
+    el.className = 'task' + (isDone ? ' done' : '');
+    el.innerHTML = `<div class="box"></div><span>${esc(t.text)}</span>`;
+    el.onclick = () => {
+      el.classList.toggle('done');
+      doneStore[t.text] = el.classList.contains('done');
+      localStorage.setItem('galaxy-tasks', JSON.stringify(doneStore));
+    };
+    taskList.appendChild(el);
+  });
+}
+
 const clock = () => {
   const d = new Date(), p = n => String(n).padStart(2,'0');
   document.querySelector('#clock .date').textContent =
@@ -607,7 +743,7 @@ function pick(objs){
 /* ---- 拖拽：空白转星系，行星上转星球 ---- */
 let drag = null;
 addEventListener('pointerdown', e => {
-  if(e.target.closest('#panel,#overview,#recent,#backBtn,#nav,#modal')) return;
+  if(e.target.closest('#panel,.col,#backBtn,#nav,#modal')) return;
   setPointer(e);
   const onPlanet = pick(planets.map(p=>p.mesh));
   drag = {x:e.clientX, y:e.clientY, t:Date.now(), moved:0,
@@ -630,7 +766,7 @@ addEventListener('pointermove', e => {
 addEventListener('pointerup', e => {
   const wasClick = drag && drag.moved < 6 && Date.now()-drag.t < 400;
   drag = null;
-  if(!wasClick || e.target.closest('#panel,#overview,#recent,#backBtn,#nav,#modal')) return;
+  if(!wasClick || e.target.closest('#panel,.col,#backBtn,#nav,#modal')) return;
   setPointer(e);
   if(!focus){
     const m = pick(planets.map(p=>p.mesh));
@@ -988,7 +1124,10 @@ addEventListener('resize', () => {
 });
 
 animate();
-setTimeout(() => document.getElementById('loader').classList.add('done'), 600);
+setTimeout(() => {
+  document.getElementById('loader').classList.add('done');
+  document.body.classList.add('ready');          // HUD 卡片进场 stagger
+}, 600);
 window.__G = {planets, enterPlanet, leavePlanet, camera, galaxy, THREE, step: () => tick(),
   warp(name){ const p = planets.find(p=>p.data.name===name);
     if(p){ enterPlanet(p); camAnim = null; } }};
