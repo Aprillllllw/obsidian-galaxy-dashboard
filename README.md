@@ -97,6 +97,9 @@ Notes:
 - The standalone page below still works independently — the plugin does not
   replace it.
 
+> **Nested vault?** If your knowledge base lives inside one folder (e.g. `MyKB/`),
+> set `rootFolder: "MyKB"` in the plugin's `config.js` — its sub-folders become the planets.
+
 ## 🎨 Customize
 
 Open **`config.js`** — one small file. Map each folder to a color, subtitle,

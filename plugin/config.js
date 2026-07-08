@@ -17,6 +17,10 @@
  * <FolderName>.jpg into textures/ and run scripts/embed_textures.py.
  * ===================================================================== */
 window.GALAXY_CONFIG = {
+  // Galaxy root: only children of this folder become planets.
+  // Leave "" to use vault-root top-level folders. Example: "MyKB"
+  rootFolder: "",
+
   title: "KNOWLEDGE GALAXY",   // big header
   subtitle: "YOUR  SECOND  BRAIN  AS  A  UNIVERSE",
   quote: "Per aspera ad astra",

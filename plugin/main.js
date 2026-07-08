@@ -23,13 +23,17 @@ let THREE = null;           // cached across view re-opens
 /* ---------------------------------------------------------------- */
 /* data layer: everything is read from the live vault APIs           */
 /* ---------------------------------------------------------------- */
-async function collectData(app) {
-  const mdFiles = app.vault.getMarkdownFiles();
-  const allFiles = app.vault.getFiles();
+async function collectData(app, rootFolder) {
+  const ROOT = (rootFolder || '').replace(/\/+$/, '');
+  const inRoot = f => !ROOT || f.path.startsWith(ROOT + '/');
+  const relPath = f => ROOT ? f.path.slice(ROOT.length + 1) : f.path;
+  const mdFiles = app.vault.getMarkdownFiles().filter(inRoot);
+  const allFiles = app.vault.getFiles().filter(inRoot);
 
   /* folders (TFolder count, excluding vault root) */
   const folderCount = app.vault.getAllLoadedFiles()
-    .filter(f => f instanceof TFolder && f.path !== '/').length;
+    .filter(f => f instanceof TFolder && f.path !== '/'
+      && (!ROOT ? true : (f.path.startsWith(ROOT + '/')))).length;
 
   /* tags: '#tag' -> count map from metadataCache */
   const tagMap = app.metadataCache.getTags ? (app.metadataCache.getTags() || {}) : {};
@@ -86,16 +90,17 @@ async function collectData(app) {
   /* planets: group md files by top-level folder */
   const byFolder = {};
   for (const f of mdFiles) {
-    const ix = f.path.indexOf('/');
-    if (ix < 0) continue;                    // vault-root notes are not on a planet
-    const top = f.path.slice(0, ix);
+    const rp = relPath(f);
+    const ix = rp.indexOf('/');
+    if (ix < 0) continue;                    // root-level notes are not on a planet
+    const top = rp.slice(0, ix);
     (byFolder[top] = byFolder[top] || []).push(f);
   }
   const folders = Object.keys(byFolder).sort().map(name => {
     const files = byFolder[name].sort((a, b) => b.stat.mtime - a.stat.mtime);
     const bySub = {};
     for (const f of files) {
-      const rest = f.path.slice(name.length + 1);
+      const rest = relPath(f).slice(name.length + 1);
       const jx = rest.indexOf('/');
       if (jx < 0) continue;
       const sub = rest.slice(0, jx);
@@ -134,6 +139,19 @@ async function collectData(app) {
 
   const pad = n => String(n).padStart(2, '0');
   const g = new Date();
+  /* calendar: notes created per day of the current month */
+  const dayNotes = {};
+  {
+    const nowD = new Date();
+    const monthStart = new Date(nowD.getFullYear(), nowD.getMonth(), 1).getTime();
+    for (const f of mdFiles) {
+      if (f.stat.ctime < monthStart) continue;
+      const d = new Date(f.stat.ctime);
+      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      (dayNotes[key] = dayNotes[key] || []).push(noteInfo(f));
+    }
+  }
+
   return {
     generated: `${g.getFullYear()}-${pad(g.getMonth() + 1)}-${pad(g.getDate())} ${pad(g.getHours())}:${pad(g.getMinutes())}`,
     vault: app.vault.getName(),
@@ -146,6 +164,7 @@ async function collectData(app) {
       attachments: allFiles.length - notes, created30d, trend,
     },
     tasks,
+    dayNotes,
     recentAll,
     folders,
   };
@@ -255,6 +274,58 @@ const KG_CSS = `
   transform:translateX(105%);transition:transform .55s cubic-bezier(.22,.9,.3,1);
   display:flex;flex-direction:column}
 .kg-panel.open{transform:translateX(0)}
+.kg-cal .cal-head{display:flex;justify-content:space-between;font-size:11px;color:#7dd3fc;
+  margin-bottom:6px;letter-spacing:.08em}
+.kg-cal table{width:100%;border-collapse:collapse;table-layout:fixed}
+.kg-cal th{font-size:9px;color:#7ea3c4;font-weight:400;padding:2px 0}
+.kg-cal td{font-size:10.5px;text-align:center;padding:3px 0;color:#d8ecff;border-radius:6px;position:relative}
+.kg-cal td.dim{color:rgba(126,163,196,.3)}
+.kg-cal td.today{background:#7dd3fc;color:#04121e;font-weight:600;box-shadow:0 0 10px rgba(125,211,252,.6)}
+.kg-cal td.has{cursor:pointer}
+.kg-cal td.has::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:#7ef0c0;box-shadow:0 0 5px #7ef0c0}
+.kg-cal td.has.hot::after{background:#ffd66e;box-shadow:0 0 6px #ffd66e}
+.kg-cal td.has:hover{background:rgba(125,211,252,.18)}
+.kg-clock{position:absolute;top:64px;right:24px;z-index:4;text-align:right;pointer-events:none}
+.kg-clock .d{font-size:10px;letter-spacing:.18em;color:#7ea3c4}
+.kg-clock .t{font-size:20px;font-weight:200;letter-spacing:.12em;color:#d8ecff}
+.kg-quote{position:absolute;right:18px;bottom:64px;z-index:4;max-width:250px;text-align:right;
+  padding:12px 16px;border-radius:12px;background:rgba(10,18,36,.45);
+  border:1px solid rgba(125,211,252,.12);backdrop-filter:blur(12px)}
+.kg-quote .q{font-size:12.5px;font-style:italic;color:#d8ecff;display:block}
+.kg-quote .by{font-size:10px;color:#7ea3c4;letter-spacing:.08em}
+.kg-nav{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:7;display:flex;gap:4px;
+  padding:7px 10px;border-radius:16px;background:rgba(10,18,36,.55);
+  border:1px solid rgba(125,211,252,.16);backdrop-filter:blur(14px)}
+.kg-nav .ni{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 12px;border-radius:10px;
+  cursor:pointer;color:#7ea3c4;font-size:9.5px;letter-spacing:.08em;transition:.2s}
+.kg-nav .ni .ico{font-size:14px}
+.kg-nav .ni:hover,.kg-nav .ni.active{color:#cfe8ff;background:rgba(125,211,252,.12)}
+.kg-modal{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+  background:rgba(2,5,12,.55);backdrop-filter:blur(6px)}
+.kg-modal.open{display:flex}
+.kg-modal .box{width:min(560px,90%);max-height:72%;overflow-y:auto;padding:22px 24px;border-radius:16px;
+  background:rgba(8,16,32,.92);border:1px solid rgba(125,211,252,.22);box-shadow:0 20px 80px rgba(0,0,0,.6)}
+.kg-modal h4{font-size:11px;letter-spacing:.22em;color:#7dd3fc;text-transform:uppercase;margin:0 0 14px}
+.kg-modal .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kg-modal .g-card{padding:10px 12px;border-radius:10px;border:1px solid rgba(125,211,252,.14)}
+.kg-modal .g-en{font-size:13px;color:var(--c,#cfe8ff)}
+.kg-modal .g-zh{font-size:10.5px;color:#7ea3c4}
+.kg-modal .g-meta{font-size:10px;color:#7ea3c4;margin-top:3px}
+.kg-modal .tl-day{font-size:10px;letter-spacing:.18em;color:#7dd3fc;margin:12px 0 4px}
+.kg-modal .note-row{display:flex;justify-content:space-between;gap:10px;padding:6px 4px;font-size:12.5px;
+  cursor:pointer;border-radius:6px}
+.kg-modal .note-row:hover{background:rgba(125,211,252,.1)}
+.kg-modal .note-row .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kg-modal .note-row .ago{color:#7ea3c4;font-size:10.5px;flex:none}
+.kg-modal .bar-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12px}
+.kg-modal .bar-row .b-name{flex:none;width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kg-modal .bar-row .b-track{flex:1;height:4px;border-radius:2px;background:rgba(125,211,252,.12);overflow:hidden}
+.kg-modal .bar-row .b-fill{height:100%;border-radius:2px;background:var(--c,#7dd3fc)}
+.kg-modal .bar-row .b-num{flex:none;width:36px;text-align:right;color:#7ea3c4}
+.kg-modal .searchin{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(125,211,252,.25);
+  background:rgba(4,8,18,.8);color:#d8ecff;font-size:14px;outline:none;font-family:inherit;margin-bottom:10px}
+.kg-modal .tip{font-size:10.5px;color:#7ea3c4;margin-top:10px}
 .kg-p-head{padding:56px 24px 18px;border-bottom:1px solid rgba(125,211,252,.12);
   background:radial-gradient(120% 90% at 100% 0%,
     color-mix(in srgb,var(--c) 22%,transparent),transparent 70%)}
@@ -374,7 +445,8 @@ class GalaxyDashboardView extends ItemView {
     const app = this.app;
     await this.loadThree();
     const CFG = await this.loadConfig();
-    const DATA = await collectData(app);
+    this._cfg = CFG;
+    const DATA = await collectData(app, CFG.rootFolder);
 
     const root = this.contentEl.createDiv({ cls: 'kg-root' });
     const style = root.createEl('style'); style.textContent = KG_CSS;
@@ -440,7 +512,10 @@ class GalaxyDashboardView extends ItemView {
 
     const colR = root.createDiv({ cls: 'kg-col kg-colR' });
     colR.innerHTML = `
-      <aside class="kg-glass kg-hud"><h3>TODAY'S TASKS</h3><div class="kg-tasks"></div></aside>`;
+      <aside class="kg-glass kg-hud"><h3>TODAY'S TASKS</h3><div class="kg-tasks"></div></aside>
+      <aside class="kg-glass kg-hud kg-cal"><h3>CALENDAR</h3>
+        <div class="cal-head"><span class="cal-title"></span><span class="cal-week"></span></div>
+        <table class="cal-table"></table></aside>`;
 
     /* spark */
     const spark = colL.querySelector('.kg-spark');
@@ -489,6 +564,148 @@ class GalaxyDashboardView extends ItemView {
       refreshBtn.classList.add('spin');
       await this.refresh();
     };
+    /* ---- clock（原版组件回补）---- */
+    const clockEl = root.createDiv({ cls: 'kg-clock' });
+    const clkD = clockEl.createDiv({ cls: 'd' }), clkT = clockEl.createDiv({ cls: 't' });
+    const tickClock = () => {
+      const n = new Date();
+      clkD.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+      clkT.textContent = n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    };
+    tickClock();
+    this.plugin.registerInterval(window.setInterval(tickClock, 30000));
+
+    /* ---- quote ---- */
+    const quoteEl = root.createDiv({ cls: 'kg-quote' });
+    quoteEl.createEl('span', { cls: 'q', text: CFG.quote || 'Per aspera ad astra' });
+    quoteEl.createEl('span', { cls: 'by', text: CFG.quoteBy || '' });
+
+    /* ---- modal + bottom nav（Grid / Timeline / Stats / Search）---- */
+    const modal = root.createDiv({ cls: 'kg-modal' });
+    const modalBox = modal.createDiv({ cls: 'box' });
+    let navItems = [];
+    const closeModal = () => { modal.classList.remove('open');
+      navItems.forEach(n => n.classList.remove('active'));
+      if (navItems[0]) navItems[0].classList.add('active'); };
+    const openModal = (title, fill) => { modalBox.empty();
+      modalBox.createEl('h4', { text: title }); fill(modalBox); modal.classList.add('open'); };
+    modal.onclick = e => { if (e.target === modal) closeModal(); };
+    this.registerDomEvent(document, 'keydown', e => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+    const agoTxt = ts => { const sec = Math.floor(Date.now() / 1000 - ts);
+      if (sec < 3600) return Math.max(1, Math.floor(sec / 60)) + 'm ago';
+      if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+      return Math.floor(sec / 86400) + 'd ago'; };
+    const VIEWS = {
+      grid: () => openModal('Grid · all planets', box => {
+        const g = box.createDiv({ cls: 'grid' });
+        planets.forEach(p => {
+          const c = g.createDiv({ cls: 'g-card' });
+          c.style.setProperty('--c', p.st.color);
+          c.createDiv({ cls: 'g-en', text: p.data.name });
+          c.createDiv({ cls: 'g-zh', text: p.st.sub || '' });
+          c.createDiv({ cls: 'g-meta', text: p.data.notes + ' notes · ' + p.data.subs.length + ' subfolders' });
+        });
+      }),
+      timeline: () => openModal('Timeline · recent activity', box => {
+        const seen = new Set(), all = [];
+        planets.forEach(p => (p.data.recent || []).forEach(n => {
+          if (!seen.has(n.path)) { seen.add(n.path); all.push(Object.assign({}, n, { color: p.st.color })); } }));
+        all.sort((a, b) => b.mtime - a.mtime);
+        const dayKey = ts => { const d = Math.floor((Date.now() / 1000 - ts) / 86400);
+          return d === 0 ? 'Today' : d === 1 ? 'Yesterday' : d < 7 ? d + ' days ago' : 'Earlier'; };
+        let last = null;
+        all.slice(0, 40).forEach(n => {
+          const k = dayKey(n.mtime);
+          if (k !== last) { box.createDiv({ cls: 'tl-day', text: k }); last = k; }
+          const r = box.createDiv({ cls: 'note-row' });
+          const t = r.createEl('span', { cls: 't', text: n.title }); t.style.color = n.color;
+          r.createEl('span', { cls: 'ago', text: agoTxt(n.mtime) });
+          r.onclick = () => { closeModal(); openNote(n.path); };
+        });
+      }),
+      stats: () => openModal('Stats · note distribution', box => {
+        const sorted = planets.slice().sort((a, b) => b.data.notes - a.data.notes);
+        const max = sorted.length ? sorted[0].data.notes : 1;
+        sorted.forEach(p => {
+          const r = box.createDiv({ cls: 'bar-row' }); r.style.setProperty('--c', p.st.color);
+          r.createEl('span', { cls: 'b-name', text: p.data.name });
+          const tr = r.createDiv({ cls: 'b-track' });
+          tr.createDiv({ cls: 'b-fill' }).style.width = (p.data.notes / max * 100).toFixed(0) + '%';
+          r.createEl('span', { cls: 'b-num', text: String(p.data.notes) });
+        });
+        box.createDiv({ cls: 'tip', text: DATA.totalNotes + ' notes total · ' + DATA.todayUpdated + ' updated today' });
+      }),
+      search: () => openModal('Search', box => {
+        const inp = box.createEl('input', { cls: 'searchin' });
+        inp.placeholder = 'Type to filter notes… Enter = Obsidian global search';
+        const list = box.createDiv();
+        const render = q => { list.empty(); if (!q) return;
+          const ql = q.toLowerCase();
+          this.app.vault.getMarkdownFiles()
+            .filter(f => f.basename.toLowerCase().includes(ql)).slice(0, 12)
+            .forEach(f => { const r = list.createDiv({ cls: 'note-row' });
+              r.createEl('span', { cls: 't', text: f.basename });
+              r.createEl('span', { cls: 'ago', text: agoTxt(Math.floor(f.stat.mtime / 1000)) });
+              r.onclick = () => { closeModal(); openNote(f.path); }; });
+        };
+        inp.oninput = () => render(inp.value.trim());
+        inp.onkeydown = e => { if (e.key === 'Enter' && inp.value.trim()) {
+          const gs = this.app.internalPlugins && this.app.internalPlugins.getPluginById
+            && this.app.internalPlugins.getPluginById('global-search');
+          if (gs && gs.instance && gs.instance.openGlobalSearch) {
+            gs.instance.openGlobalSearch(inp.value.trim()); closeModal(); } } };
+        window.setTimeout(() => inp.focus(), 60);
+        box.createDiv({ cls: 'tip', text: 'Click a result to open the note · Enter opens Obsidian global search' });
+      }),
+    };
+    const navEl = root.createDiv({ cls: 'kg-nav' });
+    [['galaxy', '\u{1F30C}', 'Galaxy'], ['grid', '\u25A6', 'Grid'], ['timeline', '\u{1F552}', 'Timeline'],
+     ['stats', '\u{1F4CA}', 'Stats'], ['search', '\u{1F50D}', 'Search']].forEach((it, ix) => {
+      const id = it[0], ico = it[1], label = it[2];
+      const el = navEl.createDiv({ cls: 'ni' + (ix === 0 ? ' active' : '') });
+      el.createDiv({ cls: 'ico', text: ico });
+      el.createEl('span', { text: label });
+      el.onclick = () => { if (id === 'galaxy') { closeModal(); return; }
+        navItems.forEach(n => n.classList.remove('active')); el.classList.add('active');
+        VIEWS[id](); };
+      navItems.push(el);
+    });
+
+    /* ---- calendar: notes created per day; click a day to list them ---- */
+    (() => {
+      const calEl = colR.querySelector('.kg-cal');
+      const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+      calEl.querySelector('.cal-title').textContent =
+        now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      calEl.querySelector('.cal-week').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'short' });
+      const first = new Date(y, mo, 1).getDay(), days = new Date(y, mo + 1, 0).getDate();
+      const p2 = n => String(n).padStart(2, '0');
+      let html = '<tr>' + ['S','M','T','W','T','F','S'].map(d => '<th>' + d + '</th>').join('') + '</tr><tr>';
+      for (let i = 0; i < first; i++) html += '<td class="dim"></td>';
+      for (let d = 1; d <= days; d++) {
+        const key = y + '-' + p2(mo + 1) + '-' + p2(d);
+        const cnt = (DATA.dayNotes && DATA.dayNotes[key] || []).length;
+        const cls = [d === now.getDate() ? 'today' : '', cnt ? 'has' : '', cnt >= 3 ? 'hot' : '']
+          .filter(Boolean).join(' ');
+        html += '<td class="' + cls + '" data-k="' + key + '">' + d + '</td>';
+        if ((first + d - 1) % 7 === 6 && d < days) html += '</tr><tr>';
+      }
+      const tbl = calEl.querySelector('.cal-table');
+      tbl.innerHTML = html + '</tr>';
+      tbl.onclick = e => {
+        const td = e.target.closest('td.has'); if (!td) return;
+        const list = (DATA.dayNotes && DATA.dayNotes[td.dataset.k]) || [];
+        openModal(td.dataset.k + ' · ' + list.length + ' note' + (list.length > 1 ? 's' : '') + ' created', box => {
+          list.forEach(n => { const r = box.createDiv({ cls: 'note-row' });
+            r.createEl('span', { cls: 't', text: n.title });
+            r.createEl('span', { cls: 'ago', text: agoTxt(n.mtime) });
+            r.onclick = () => { closeModal(); openNote(n.path); }; });
+        });
+      };
+    })();
+
     const backBtn = root.createEl('button', { cls: 'kg-back' });
     backBtn.innerHTML = '⟵&nbsp; Back to galaxy';
     root.createDiv({ cls: 'kg-hint',
@@ -750,7 +967,7 @@ class GalaxyDashboardView extends ItemView {
       const hit = ray.intersectObjects(objs, false)[0];
       return hit ? hit.object : null;
     };
-    const uiHit = e => e.target.closest('.kg-col,.kg-panel,.kg-back,.kg-refresh,.kg-header');
+    const uiHit = e => e.target.closest('.kg-col,.kg-panel,.kg-back,.kg-refresh,.kg-header,.kg-nav,.kg-modal,.kg-quote');
 
     const buildMoons = p => {
       const maxSub = Math.max(1, ...p.data.subs.map(s => s.notes));
