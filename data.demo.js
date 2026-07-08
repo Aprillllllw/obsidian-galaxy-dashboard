@@ -3,30 +3,6 @@ window.GALAXY_DATA = {
  "vault": "DemoVault",
  "totalNotes": 140,
  "todayUpdated": 12,
- "health": {
-  "score": 82,
-  "notes": 140,
-  "links": 496,
-  "orphans": 7
- },
- "streak": {
-  "days": 12
- },
- "stats": {
-  "files": 140,
-  "folders": 23,
-  "tags": 48,
-  "attachments": 36,
-  "created30d": 24,
-  "trend": [1, 0, 2, 3, 1, 4, 2, 5, 3, 2, 4, 6, 3, 5]
- },
- "tasks": [
-  {"text": "Review weekly goals", "done": false},
-  {"text": "Process 08_Inbox captures", "done": false},
-  {"text": "Finish launch checklist draft", "done": true},
-  {"text": "Summarize Atomic Habits chapter 4", "done": false},
-  {"text": "Link orphan notes in 03_Resources", "done": false}
- ],
  "recentAll": [
   {
    "title": "2026-06-12",

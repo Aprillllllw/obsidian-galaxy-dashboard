@@ -63,40 +63,6 @@ python3 scripts/update_dashboard.py --vault "/path/to/Vault" --min 3
 > Obsidian shows in its sidebar. If clicking a note does nothing, re-run with
 > `--name "Your Vault Name"`.
 
-## 🔌 Install as Obsidian Plugin
-
-Prefer the galaxy *inside* Obsidian? The `plugin/` folder is a self-contained
-Obsidian plugin (no build step). It computes everything **live** from your
-vault — files, folders, tags, attachments, links, orphans, streak, open tasks —
-so you never need to run the Python scanner.
-
-**Install:**
-
-1. Copy the `plugin/` folder into your vault at
-   `<vault>/.obsidian/plugins/knowledge-galaxy-dashboard/`
-
-   ```bash
-   cp -r plugin "/path/to/your/Vault/.obsidian/plugins/knowledge-galaxy-dashboard"
-   ```
-
-2. In Obsidian: **Settings → Community plugins → Installed plugins**, refresh,
-   then enable **Knowledge Galaxy Dashboard**.
-3. Click the orbit icon in the ribbon (or run the command
-   *"Open Knowledge Galaxy dashboard"*).
-
-Notes:
-
-- Clicking a note in the plugin opens it directly in Obsidian.
-- Data is computed when the view opens; hit **REFRESH DATA** (top-right) to
-  re-scan.
-- Planet styling is read from the plugin's own `config.js` — edit
-  `<vault>/.obsidian/plugins/knowledge-galaxy-dashboard/config.js` to map your
-  folder names to colors/rings/descriptions.
-- Custom planet art: drop `<FolderName>.jpg` (2:1 equirectangular) into the
-  plugin's `assets/` folder.
-- The standalone page below still works independently — the plugin does not
-  replace it.
-
 ## 🎨 Customize
 
 Open **`config.js`** — one small file. Map each folder to a color, subtitle,
